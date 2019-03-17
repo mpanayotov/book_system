@@ -26,13 +26,11 @@ describe Feed do
       it { is_expected.not_to be_empty }
 
       it 'returns list of all user upvotes' do
-        ids =-> (book) { book['id'] }
-        expect(subject.map(&ids).sort).to eq(user_upvotes.map(&ids).sort)
+        expect(subject.map(&:id).sort).to eq(user_upvotes.map(&:id).sort)
       end
 
       it "book list is prioritized, followed authors\' books are showed first" do
-        ids =-> (book) { book['id'] }
-        expect(subject.map(&ids)[0..1]).to eq([third_upvoted_book.id, fifth_upvoted_book.id])
+        expect(subject.map(&:id)[0..1]).to eq([third_upvoted_book.id, fifth_upvoted_book.id])
       end
     end
   end
@@ -50,19 +48,16 @@ describe Feed do
       end
 
       context 'with new upvoted books' do
-        let!(:new_upvote) { create :upvote, user: user }
-
         it 'shows list new books for the user feed' do
-          ids =-> (book) { book['id'] }
-          expect(feed.refresh.map(&ids)).to eq([new_upvote.id])
+          new_upvote = create :upvote, user: user
+          expect(feed.refresh.map(&:id)).to eq([new_upvote.id])
         end
       end
     end
 
     context 'without retrieved book feed' do
       it 'shows whole book list' do
-        ids =-> (book) { book['id'] }
-        expect(feed.refresh.map(&ids)).to eq(feed.retrieve.map(&ids))
+        expect(feed.refresh.map(&:id)).to eq(feed.retrieve.map(&:id))
       end
     end    
   end

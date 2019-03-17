@@ -16,34 +16,27 @@ class Feed
 
   attr_reader :user
 
+  def book
+    Book.arel_table
+  end
+
   def upvoted_books
     Book.joins(:upvotes)
         .joins(:author)
-        .select(book_feed_fields)
         .where(upvotes: { user: user })
-        .map(&:attributes)
   end
 
   def followed_authors_books
     Author.joins(:follows)
           .joins(:books)
-          .select(book_feed_fields)
           .where(follows: { user: user })
-          .map(&:attributes)
-          .map { |book| book.merge({'genres'=> JSON.parse(book['genres'])}) }
-  end
-
-  def book_feed_fields
-    'authors.name as author_name, authors.id as author_id, books.*'
   end
 
   def prioritized_books
     return @prioritized_books if @prioritized_books
-
-    upvoted = upvoted_books
-    upvoted_and_followed_author = upvoted & followed_authors_books
-    only_upvoted = upvoted - upvoted_and_followed_author
-
-    @prioritized_books = [upvoted_and_followed_author, only_upvoted].flatten
+    upvoted_and_followed = upvoted_books.where(id: followed_authors_books.select(book[:id]))
+    only_upvoted = upvoted_books.where.not(id: followed_authors_books.select(book[:id]))
+    union = upvoted_and_followed.union(only_upvoted)
+    @prioritized_books = Book.from(book.create_table_alias(union, :books)).load
   end
 end
